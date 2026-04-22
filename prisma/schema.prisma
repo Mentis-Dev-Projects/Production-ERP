@@ -1,0 +1,434 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["app_core", "data_ref", "files", "production_jobbing", "sales", "workflow"]
+}
+
+model Client {
+  client_id   BigInt       @id @default(autoincrement())
+  clientCode  String?      @unique @map("client_code")
+  client_name String
+  is_active   Boolean      @default(true)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @map("updated_at") @db.Timestamptz(6)
+  salesOrders SalesOrder[]
+
+  @@map("client")
+  @@schema("app_core")
+}
+
+model WorkCenter {
+  work_center_id       BigInt                 @id @default(autoincrement())
+  work_center_code     String                 @unique
+  work_center_name     String
+  process_group        String
+  sort_order           Int
+  isActive             Boolean                @default(true) @map("is_active")
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime               @default(now()) @map("updated_at") @db.Timestamptz(6)
+  work_center_capacity work_center_capacity[]
+  rectagrid_punching   RectagridPunching[]
+  rectagrid_step       RectagridStep[]
+
+  @@map("work_center")
+  @@schema("app_core")
+}
+
+model SalesOrder {
+  sales_order_id                BigInt                 @id @default(autoincrement())
+  salesOrderNumber              String                 @unique @map("sales_order_number")
+  clientId                      BigInt                 @map("client_id")
+  entry_product_code            String
+  entry_description_1           String?
+  entry_description_2           String?
+  entry_description_3           String?
+  entry_sqm                     Decimal?               @db.Decimal(18, 4)
+  entry_qty                     Decimal?               @db.Decimal(18, 4)
+  entry_sales_order_upload_at   DateTime?              @db.Timestamp(6)
+  entry_sales_order_received_at DateTime?              @db.Timestamp(6)
+  entry_sales_order_approval_at DateTime?              @db.Timestamp(6)
+  entry_production_issued_at    DateTime?              @db.Timestamp(6)
+  entry_start_at                DateTime?              @db.Timestamp(6)
+  calc_due_start_date           DateTime?              @db.Date
+  calc_due_date                 DateTime?              @db.Date
+  entry_x_works_date            DateTime?              @db.Date
+  entry_revised_x_works_date    DateTime?              @db.Date
+  entry_revised_due_date        DateTime?              @db.Date
+  source_system                 String?
+  source_batch_id               String?
+  source_row_key                String?
+  createdAt                     DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime               @default(now()) @map("updated_at") @db.Timestamptz(6)
+  rectagridJobs                 RectagridJob?
+  client                        Client                 @relation(fields: [clientId], references: [client_id], onDelete: NoAction, onUpdate: NoAction)
+  sales_order_document          sales_order_document[]
+
+  @@index([entry_sales_order_approval_at], map: "ix_sales_order_approval_at")
+  @@index([clientId], map: "ix_sales_order_client_id")
+  @@index([calc_due_date], map: "ix_sales_order_due_date")
+  @@index([entry_product_code], map: "ix_sales_order_product_code")
+  @@map("sales_order")
+  @@schema("sales")
+}
+
+model RectagridJob {
+  rectagrid_job_id              BigInt             @id @default(autoincrement())
+  salesOrderId                  BigInt             @unique @map("sales_order_id")
+  entry_sales_order_number      String
+  entry_client_name             String
+  entry_product_code            String
+  entry_description_1           String?
+  entry_description_2           String?
+  entry_description_3           String?
+  entry_sqm                     Decimal?           @db.Decimal(18, 4)
+  entry_qty                     Decimal?           @db.Decimal(18, 4)
+  entry_sales_order_approval_at DateTime?          @db.Timestamp(6)
+  entry_production_issued_at    DateTime?          @db.Timestamp(6)
+  entry_start_at                DateTime?          @db.Timestamp(6)
+  entry_x_works_date            DateTime?          @db.Date
+  entry_revised_x_works_date    DateTime?          @db.Date
+  entry_revised_due_date        DateTime?          @db.Date
+  calc_due_start_date           DateTime?          @db.Date
+  calc_due_date                 DateTime?          @db.Date
+  current_step_code             String?
+  current_step_name             String?
+  job_status                    String             @default("OPEN")
+  createdAt                     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  salesOrder                    SalesOrder         @relation(fields: [salesOrderId], references: [sales_order_id], onDelete: Cascade, onUpdate: NoAction)
+  punchingRecords               RectagridPunching?
+  steps                         RectagridStep[]
+
+  @@index([calc_due_date], map: "ix_rectagrid_job_due_date")
+  @@index([salesOrderId], map: "ix_rectagrid_job_sales_order_id")
+  @@map("rectagrid_job")
+  @@schema("production_jobbing")
+}
+
+model RectagridStep {
+  rectagrid_step_id        BigInt             @id @default(autoincrement())
+  rectagridJobId           BigInt             @map("rectagrid_job_id")
+  step_no                  Int
+  stepCode                 String             @map("step_code")
+  stepName                 String             @map("step_name")
+  workCenterId             BigInt?            @map("work_center_id")
+  entry_planned_days       Decimal?           @db.Decimal(18, 4)
+  entry_planned_start_date DateTime?          @db.Date
+  entry_actual_start_date  DateTime?          @db.Date
+  entry_planned_end_date   DateTime?          @db.Date
+  entry_actual_end_date    DateTime?          @db.Date
+  entry_revised_start_date DateTime?          @db.Date
+  entry_revised_end_date   DateTime?          @db.Date
+  entry_status             String?
+  calc_late_early_status   String?
+  calc_is_complete         Boolean?
+  createdAt                DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  rectagrid_punching       RectagridPunching?
+  rectagridJob             RectagridJob       @relation(fields: [rectagridJobId], references: [rectagrid_job_id], onDelete: Cascade, onUpdate: NoAction)
+  work_center              WorkCenter?        @relation(fields: [workCenterId], references: [work_center_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([rectagridJobId, step_no], map: "uq_rectagrid_step_job_step")
+  @@index([rectagridJobId], map: "ix_rectagrid_step_job_id")
+  @@index([workCenterId], map: "ix_rectagrid_step_work_center_id")
+  @@map("rectagrid_step")
+  @@schema("production_jobbing")
+}
+
+model RectagridPunching {
+  rectagrid_punching_id               BigInt         @id @default(autoincrement())
+  rectagridJobId                      BigInt         @unique @map("rectagrid_job_id")
+  rectagrid_step_id                   BigInt?        @unique
+  workCenterId                        BigInt         @map("work_center_id")
+  entry_sales_order_number            String
+  entry_client_name                   String
+  entry_product_code                  String
+  entry_description_1                 String?
+  entry_description_2                 String?
+  entry_description_3                 String?
+  entry_sqm                           Decimal?       @db.Decimal(18, 4)
+  entry_qty                           Decimal?       @db.Decimal(18, 4)
+  entry_sales_order_approval_at       DateTime?      @db.Timestamp(6)
+  entry_production_issued_at          DateTime?      @db.Timestamp(6)
+  entry_start_at                      DateTime?      @db.Timestamp(6)
+  entry_x_works_date                  DateTime?      @db.Date
+  entry_due_date_override             DateTime?      @db.Date
+  entry_revised_x_works_date          DateTime?      @db.Date
+  entry_revised_due_date              DateTime?      @db.Date
+  entry_works_order_number            String?
+  ref_part_number                     String?
+  ref_part_description                String?
+  ref_works_order_qty                 Decimal?       @db.Decimal(18, 4)
+  ref_works_order_uom                 String?
+  ref_estimated_completion_time_hours Decimal?       @db.Decimal(18, 4)
+  ref_estimated_completion_time_days  Decimal?       @db.Decimal(18, 4)
+  entry_planned_punching_days         Decimal        @default(4) @db.Decimal(18, 4)
+  calc_planned_start_date             DateTime?      @db.Date
+  entry_actual_start_date             DateTime?      @db.Date
+  calc_planned_end_date               DateTime?      @db.Date
+  entry_actual_end_date               DateTime?      @db.Date
+  calc_status                         String?
+  calc_early_late_status              String?
+  createdAt                           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                           DateTime       @default(now()) @map("updated_at") @db.Timestamptz(6)
+  rectagridJob                        RectagridJob   @relation(fields: [rectagridJobId], references: [rectagrid_job_id], onDelete: Cascade, onUpdate: NoAction)
+  rectagrid_step                      RectagridStep? @relation(fields: [rectagrid_step_id], references: [rectagrid_step_id], onUpdate: NoAction)
+  work_center                         WorkCenter     @relation(fields: [workCenterId], references: [work_center_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([rectagridJobId], map: "ix_rectagrid_punching_job_id")
+  @@index([calc_planned_end_date], map: "ix_rectagrid_punching_planned_end_date")
+  @@index([calc_planned_start_date], map: "ix_rectagrid_punching_planned_start_date")
+  @@index([workCenterId], map: "ix_rectagrid_punching_work_center_id")
+  @@map("rectagrid_punching")
+  @@schema("production_jobbing")
+}
+
+model PublicHoliday {
+  public_holiday_id BigInt   @id @default(autoincrement())
+  holidayDate       DateTime @unique @map("holiday_date") @db.Date
+  holiday_name      String
+  is_active         Boolean  @default(true)
+
+  @@map("public_holiday")
+  @@schema("data_ref")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model plant_cutoff_rule {
+  plant_cutoff_rule_id BigInt   @id @default(autoincrement())
+  rule_name            String   @unique
+  iso_day_of_week      Int
+  cutoff_time          DateTime @db.Time(6)
+  is_active            Boolean  @default(true)
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("app_core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product {
+  product_id            BigInt   @id @default(autoincrement())
+  product_code          String   @unique
+  product_description_1 String?
+  product_description_2 String?
+  product_description_3 String?
+  default_uom           String?
+  planning_basis        String   @default("QTY")
+  is_active             Boolean  @default(true)
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("app_core")
+}
+
+model bom_extract {
+  bom_extract_id       BigInt   @id @default(autoincrement())
+  bom_part_number      String   @unique
+  bom_part_description String?
+  bom_category         String?
+  bom_uom              String?
+  is_active            Boolean  @default(true)
+  source_batch_id      String?
+  updated_at           DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("data_ref")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model calendar_day {
+  calendar_date     DateTime @id @db.Date
+  is_weekend        Boolean
+  is_public_holiday Boolean  @default(false)
+  is_short_time     Boolean  @default(false)
+  available_hours   Decimal  @default(7.5) @db.Decimal(18, 4)
+  is_working_day    Boolean
+  notes             String?
+
+  @@schema("data_ref")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cycle_time {
+  cycle_time_id                       BigInt   @id @default(autoincrement())
+  part_number                         String
+  work_center_code                    String
+  estimated_completion_hours_per_unit Decimal  @default(0) @db.Decimal(18, 6)
+  default_hours_per_day               Decimal  @default(7.5) @db.Decimal(18, 4)
+  source_batch_id                     String?
+  updated_at                          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([part_number, work_center_code], map: "uq_cycle_time_part_work_center")
+  @@schema("data_ref")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model short_time_day {
+  short_time_day_id BigInt   @id @default(autoincrement())
+  short_time_date   DateTime @unique @db.Date
+  short_time_name   String?
+  available_hours   Decimal  @default(0) @db.Decimal(18, 4)
+  is_active         Boolean  @default(true)
+
+  @@schema("data_ref")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model work_center_capacity {
+  work_center_capacity_id BigInt     @id @default(autoincrement())
+  work_center_id          BigInt
+  capacity_date           DateTime   @db.Date
+  available_hours         Decimal    @default(0) @db.Decimal(18, 4)
+  efficiency_factor       Decimal    @default(1.0) @db.Decimal(18, 6)
+  resource_name           String?
+  notes                   String?
+  created_at              DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime   @default(now()) @db.Timestamptz(6)
+  work_center             WorkCenter @relation(fields: [work_center_id], references: [work_center_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("data_ref")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model zwodte3_works_order {
+  zwodte3_works_order_id  BigInt    @id @default(autoincrement())
+  works_order_number      String    @unique
+  part_number             String?
+  actual_or_reported_date DateTime? @db.Date
+  works_order_qty         Decimal?  @db.Decimal(18, 4)
+  works_order_uom         String?
+  source_batch_id         String?
+  updated_at              DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@schema("data_ref")
+}
+
+model document {
+  document_id          BigInt                 @id @default(autoincrement())
+  document_group       String
+  document_type        String
+  file_name            String
+  original_file_name   String?
+  mime_type            String?
+  storage_path         String?
+  file_size_bytes      BigInt?
+  uploaded_at          DateTime               @default(now()) @db.Timestamptz(6)
+  uploaded_by          String?
+  notes                String?
+  sales_order_document sales_order_document[]
+
+  @@schema("files")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sales_order_document {
+  sales_order_document_id BigInt     @id @default(autoincrement())
+  sales_order_id          BigInt
+  document_id             BigInt
+  document_role           String
+  created_at              DateTime   @default(now()) @db.Timestamptz(6)
+  document                document   @relation(fields: [document_id], references: [document_id], onDelete: Cascade, onUpdate: NoAction)
+  sales_order             SalesOrder @relation(fields: [sales_order_id], references: [sales_order_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([sales_order_id, document_id, document_role], map: "uq_sales_order_document")
+  @@schema("sales")
+}
+
+model jobbing_order {
+  jobbing_order_id         BigInt                        @id @default(autoincrement())
+  estimate_number          String
+  estimate_accepted_at     DateTime?                     @db.Timestamp(6)
+  client_name              String
+  stream_name              String                        @default("Rectagrid")
+  technical_requirements   String?
+  sales_notes              String?
+  drawing_notes            String?
+  production_notes         String?
+  current_department       String
+  current_stage            String
+  workflow_status          String
+  sales_order_number       String?
+  product_code             String?
+  sqm                      Decimal?                      @db.Decimal(18, 4)
+  qty                      Decimal?                      @db.Decimal(18, 4)
+  sales_order_approval_at  DateTime?                     @db.Timestamp(6)
+  linked_sales_order_id    BigInt?
+  created_by_name          String?
+  updated_by_name          String?
+  created_at               DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                      @default(now()) @db.Timestamptz(6)
+  attachments              jobbing_order_attachment[]
+  notifications            jobbing_order_notification[]
+  stages                   jobbing_order_stage[]
+
+  @@unique([estimate_number, stream_name], map: "uq_jobbing_order_estimate_stream")
+  @@index([current_department], map: "ix_jobbing_order_department")
+  @@index([workflow_status], map: "ix_jobbing_order_status")
+  @@index([sales_order_number], map: "ix_jobbing_order_sales_order_number")
+  @@schema("workflow")
+}
+
+model jobbing_order_stage {
+  jobbing_order_stage_id BigInt                        @id @default(autoincrement())
+  jobbing_order_id       BigInt
+  department_code        String
+  stage_code             String
+  stage_status           String
+  stage_title            String
+  notes                  String?
+  action_by_name         String?
+  acted_at               DateTime?                     @db.Timestamp(6)
+  created_at             DateTime                      @default(now()) @db.Timestamptz(6)
+  attachments            jobbing_order_attachment[]
+  notifications          jobbing_order_notification[]
+  jobbing_order          jobbing_order                 @relation(fields: [jobbing_order_id], references: [jobbing_order_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([jobbing_order_id], map: "ix_jobbing_order_stage_jobbing_order_id")
+  @@index([department_code], map: "ix_jobbing_order_stage_department_code")
+  @@schema("workflow")
+}
+
+model jobbing_order_attachment {
+  jobbing_order_attachment_id BigInt               @id @default(autoincrement())
+  jobbing_order_id            BigInt
+  jobbing_order_stage_id      BigInt?
+  attachment_role             String
+  file_name                   String
+  original_file_name          String
+  mime_type                   String?
+  storage_path                String
+  file_size_bytes             BigInt?
+  uploaded_by_name            String?
+  notes                       String?
+  uploaded_at                 DateTime             @default(now()) @db.Timestamptz(6)
+  jobbing_order               jobbing_order        @relation(fields: [jobbing_order_id], references: [jobbing_order_id], onDelete: Cascade, onUpdate: NoAction)
+  jobbing_order_stage         jobbing_order_stage? @relation(fields: [jobbing_order_stage_id], references: [jobbing_order_stage_id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([jobbing_order_id], map: "ix_jobbing_order_attachment_jobbing_order_id")
+  @@index([jobbing_order_stage_id], map: "ix_jobbing_order_attachment_stage_id")
+  @@schema("workflow")
+}
+
+model jobbing_order_notification {
+  jobbing_order_notification_id BigInt               @id @default(autoincrement())
+  jobbing_order_id              BigInt
+  jobbing_order_stage_id        BigInt?
+  recipient_department          String
+  title                         String
+  message                       String
+  notification_type             String
+  is_read                       Boolean              @default(false)
+  read_at                       DateTime?            @db.Timestamptz(6)
+  created_at                    DateTime             @default(now()) @db.Timestamptz(6)
+  jobbing_order                 jobbing_order        @relation(fields: [jobbing_order_id], references: [jobbing_order_id], onDelete: Cascade, onUpdate: NoAction)
+  jobbing_order_stage           jobbing_order_stage? @relation(fields: [jobbing_order_stage_id], references: [jobbing_order_stage_id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([recipient_department, is_read], map: "ix_jobbing_order_notification_recipient_read")
+  @@index([jobbing_order_id], map: "ix_jobbing_order_notification_jobbing_order_id")
+  @@schema("workflow")
+}
