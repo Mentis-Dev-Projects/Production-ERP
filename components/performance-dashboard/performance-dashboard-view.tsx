@@ -917,8 +917,11 @@ export function PerformanceDashboardView({ item, meta }: { item: PerformanceDash
                         </tr>
                       </thead>
                       <tbody>
-                        {item.kpiDrilldown.rows.map((row) => (
-                          <tr key={`${row.salesOrderNumber}-${row.worksOrder ?? "no-wo"}-${row.productCode ?? "no-product"}`} className="rounded-2xl bg-slate-900/70 text-slate-100">
+                        {item.kpiDrilldown.rows.map((row, index) => (
+                          <tr
+                            key={`${row.productionLine}-${row.salesOrderNumber}-${row.worksOrder ?? "no-wo"}-${row.productCode ?? "no-product"}-${row.effectiveDueDate ?? "no-due"}-${row.currentDepartment}-${index}`}
+                            className="rounded-2xl bg-slate-900/70 text-slate-100"
+                          >
                             <td className="rounded-l-2xl px-3 py-3 text-slate-300">{row.productionLine}</td>
                             <td className="px-3 py-3 font-medium text-primary">{row.salesOrderNumber}</td>
                             <td className="px-3 py-3 text-slate-300">{row.worksOrder ?? "-"}</td>
@@ -1059,8 +1062,11 @@ export function PerformanceDashboardView({ item, meta }: { item: PerformanceDash
                       </tr>
                     </thead>
                     <tbody>
-                      {item.exceptions.map((exception) => (
-                        <tr key={`${exception.salesOrderNumber}-${exception.worksOrder ?? "no-wo"}`} className="rounded-2xl bg-slate-900/70 text-slate-100">
+                      {item.exceptions.map((exception, index) => (
+                        <tr
+                          key={`${exception.productionLine}-${exception.salesOrderNumber}-${exception.worksOrder ?? "no-wo"}-${exception.productCode ?? "no-product"}-${exception.effectiveDueDate ?? "no-due"}-${exception.currentDepartment}-${index}`}
+                          className="rounded-2xl bg-slate-900/70 text-slate-100"
+                        >
                           <td className="rounded-l-2xl px-3 py-3 text-slate-300">{exception.productionLine}</td>
                           <td className="px-3 py-3 font-medium text-primary">{exception.salesOrderNumber}</td>
                           <td className="px-3 py-3 text-slate-300">{exception.worksOrder ?? "-"}</td>

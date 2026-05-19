@@ -144,7 +144,7 @@ export default async function ProductionDepartmentPage() {
                 <TableBody>
                   {orders
                     .filter((order) => order.status !== "complete")
-                    .sort((left, right) => (left.dueDate ?? "").localeCompare(right.dueDate ?? ""))
+                    .sort((left, right) => (right.dueDate ?? "").localeCompare(left.dueDate ?? ""))
                     .map((order) => (
                       <TableRow key={order.id}>
                         <TableCell>

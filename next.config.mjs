@@ -5,13 +5,13 @@ function normalizeOriginEntry(origin) {
 
   if (value.includes("://")) {
     try {
-      return new URL(value).host
+      return new URL(value).hostname
     } catch {
-      return value.replace(/^https?:\/\//, "")
+      return value.replace(/^https?:\/\//, "").split("/")[0].split(":")[0]
     }
   }
 
-  return value
+  return value.split("/")[0].split(":")[0]
 }
 
 const configuredOrigins = process.env.MENTIS_ALLOWED_DEV_ORIGINS
@@ -19,7 +19,15 @@ const configuredOrigins = process.env.MENTIS_ALLOWED_DEV_ORIGINS
   : []
 
 const allowedDevOrigins = Array.from(
-  new Set(["localhost", "127.0.0.1", "192.0.0.154", ...configuredOrigins]),
+  new Set([
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "192.0.0.154",
+    "*.trycloudflare.com",
+    "*.cfargotunnel.com",
+    ...configuredOrigins,
+  ]),
 )
 
 const nextConfig = {

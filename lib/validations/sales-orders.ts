@@ -17,6 +17,8 @@ export const salesOrderSortDirectionSchema = z.enum(["asc", "desc"])
 
 export const salesOrdersQuerySchema = z.object({
   q: z.string().trim().max(100).optional().default(""),
+  salesOrderNumber: z.string().trim().max(100).optional().default(""),
+  client: z.string().trim().max(200).optional().default(""),
   status: salesOrderStatusSchema.optional().default("all"),
   stream: z.string().trim().max(50).optional().default("all"),
   sortBy: salesOrderSortBySchema.optional().default("dueDate"),

@@ -223,11 +223,11 @@ const baseOrdersCte = Prisma.sql`
   )
 `
 
-function buildSalesOrderFilters(q: string, status: string, stream: string) {
+function buildSalesOrderFilters(params: { q?: string; salesOrderNumber?: string; client?: string; status: string; stream: string }) {
   const fragments: Prisma.Sql[] = [Prisma.sql`1 = 1`]
 
-  if (q) {
-    const term = `%${q}%`
+  if (params.q) {
+    const term = `%${params.q}%`
     fragments.push(
       Prisma.sql`(
         base."salesOrderNumber" ILIKE ${term}
@@ -236,12 +236,26 @@ function buildSalesOrderFilters(q: string, status: string, stream: string) {
     )
   }
 
-  if (status !== "all") {
-    fragments.push(Prisma.sql`LOWER(base.status) = ${status.toLowerCase()}`)
+  if (params.salesOrderNumber) {
+    fragments.push(Prisma.sql`base."salesOrderNumber" ILIKE ${`%${params.salesOrderNumber}%`}`)
   }
 
-  if (stream !== "all") {
-    fragments.push(Prisma.sql`LOWER(base.stream) = ${stream.toLowerCase()}`)
+  if (params.client) {
+    const clientTerm = `%${params.client}%`
+    fragments.push(
+      Prisma.sql`(
+        COALESCE(base."clientName", '') ILIKE ${clientTerm}
+        OR COALESCE(base."clientCode", '') ILIKE ${clientTerm}
+      )`,
+    )
+  }
+
+  if (params.status !== "all") {
+    fragments.push(Prisma.sql`LOWER(base.status) = ${params.status.toLowerCase()}`)
+  }
+
+  if (params.stream !== "all") {
+    fragments.push(Prisma.sql`LOWER(base.stream) = ${params.stream.toLowerCase()}`)
   }
 
   return Prisma.join(fragments, " AND ")
@@ -258,14 +272,16 @@ function buildSalesOrderOrderBy(sortBy: "dueDate" | "approvalDate", sortDirectio
 }
 
 export async function findSalesOrders(params: {
-  q: string
+  q?: string
+  salesOrderNumber?: string
+  client?: string
   status: string
   stream: string
   sortBy?: "dueDate" | "approvalDate"
   sortDirection?: "asc" | "desc"
   limit: number
 }) {
-  const whereClause = buildSalesOrderFilters(params.q, params.status, params.stream)
+  const whereClause = buildSalesOrderFilters(params)
   const orderByClause = buildSalesOrderOrderBy(params.sortBy ?? "dueDate", params.sortDirection ?? "asc")
 
   return executeSafeQuery<SalesOrderListItem[]>(

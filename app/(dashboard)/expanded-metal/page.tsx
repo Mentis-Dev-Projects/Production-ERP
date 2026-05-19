@@ -29,7 +29,7 @@ export default async function ExpandedMetalPage({ searchParams }: MentexPageProp
     status: params.status,
     stream: "Mentex",
     sortBy: "dueDate",
-    sortDirection: "asc",
+    sortDirection: "desc",
     limit: 250,
   })
 

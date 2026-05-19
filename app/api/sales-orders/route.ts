@@ -5,6 +5,8 @@ import { salesOrdersQuerySchema } from "@/lib/validations/sales-orders"
 export async function GET(request: NextRequest) {
   const params = salesOrdersQuerySchema.parse({
     q: request.nextUrl.searchParams.get("q") ?? "",
+    salesOrderNumber: request.nextUrl.searchParams.get("salesOrderNumber") ?? "",
+    client: request.nextUrl.searchParams.get("client") ?? "",
     status: request.nextUrl.searchParams.get("status") ?? "all",
     stream: request.nextUrl.searchParams.get("stream") ?? "all",
     sortBy: request.nextUrl.searchParams.get("sortBy") ?? "dueDate",

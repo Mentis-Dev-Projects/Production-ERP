@@ -18,15 +18,34 @@ export default async function SalesOrdersPage({ searchParams }: SalesOrdersPageP
   const rawParams = await searchParams
   const params = salesOrdersQuerySchema.parse({
     q: typeof rawParams.q === "string" ? rawParams.q : "",
+    salesOrderNumber: typeof rawParams.salesOrderNumber === "string" ? rawParams.salesOrderNumber : "",
+    client: typeof rawParams.client === "string" ? rawParams.client : "",
     status: typeof rawParams.status === "string" ? rawParams.status : "all",
     stream: typeof rawParams.stream === "string" ? rawParams.stream : "all",
     sortBy: "dueDate",
     sortDirection: "desc",
   })
 
-  const { items, meta } = await getSalesOrders({ ...params, limit: 5000 })
-  const streams = Array.from(new Set(items.map((item) => item.stream))).sort()
-  const searchSummary = params.q ? `Client / sales order: ${params.q}` : "All live sales orders"
+  const [{ items, meta }, { items: optionItems }] = await Promise.all([
+    getSalesOrders({ ...params, limit: 5000 }),
+    getSalesOrders({
+      q: "",
+      salesOrderNumber: "",
+      client: "",
+      status: "all",
+      stream: "all",
+      sortBy: "dueDate",
+      sortDirection: "desc",
+      limit: 5000,
+    }),
+  ])
+  const streams = Array.from(new Set(optionItems.map((item) => item.stream))).sort()
+  const searchSummaryParts = [
+    params.salesOrderNumber ? `Sales order: ${params.salesOrderNumber}` : null,
+    params.client ? `Client: ${params.client}` : null,
+    !params.salesOrderNumber && !params.client && params.q ? `Client / sales order: ${params.q}` : null,
+  ].filter(Boolean)
+  const searchSummary = searchSummaryParts.length > 0 ? searchSummaryParts.join(" | ") : "All live sales orders"
   const sortSummary = "Latest due date first"
 
   return (
@@ -37,7 +56,7 @@ export default async function SalesOrdersPage({ searchParams }: SalesOrdersPageP
         <AppHeader title="Sales Orders" />
         <main className="space-y-6 p-6">
           <DataAccessNotice meta={meta} />
-          <SalesOrderFilters streams={streams} />
+          <SalesOrderFilters streams={streams} orders={optionItems} />
 
           <Card>
             <CardContent className="pt-6">

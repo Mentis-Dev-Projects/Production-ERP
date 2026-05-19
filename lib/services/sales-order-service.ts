@@ -12,7 +12,9 @@ function toMeta(dataSource: "database" | "unavailable"): DataAccessMeta {
 }
 
 export async function getSalesOrders(params: {
-  q: string
+  q?: string
+  salesOrderNumber?: string
+  client?: string
   status: string
   stream: string
   sortBy?: "dueDate" | "approvalDate"

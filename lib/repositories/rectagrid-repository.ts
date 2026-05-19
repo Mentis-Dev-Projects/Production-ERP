@@ -97,7 +97,7 @@ export async function findRectagridJobs(params: {
         LIMIT 1
       ) blocking_step ON TRUE
       WHERE ${whereClause}
-      ORDER BY COALESCE(job.entry_revised_due_date, job.calc_due_date) ASC NULLS LAST, job.entry_sales_order_number ASC
+      ORDER BY COALESCE(job.entry_revised_due_date, job.calc_due_date) DESC NULLS LAST, job.entry_sales_order_number ASC
       LIMIT ${params.limit}
     `,
     [],
